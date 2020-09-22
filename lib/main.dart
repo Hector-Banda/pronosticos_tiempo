@@ -11,12 +11,8 @@ Future<Forecast> fetchAlbum() async {
       'http://www.7timer.info/bin/api.pl?lon=-97.872&lat=22.282&product=civillight&output=json');
 
   if (response.statusCode == 200) {
-    // If the server did return a 200 OK response,
-    // then parse the JSON.
     return Forecast.fromJson(json.decode(response.body));
   } else {
-    // If the server did not return a 200 OK response,
-    // then throw an exception.
     throw Exception('Failed to load album');
   }
 }
@@ -46,7 +42,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'Temperatura Tampico'),
     );
   }
 }
@@ -62,7 +58,6 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   Future<Forecast> futureAlbum;
-  int _counter = 0;
 
   @override
   void initState() {
@@ -70,36 +65,79 @@ class _MyHomePageState extends State<MyHomePage> {
     futureAlbum = fetchAlbum();
   }
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  Widget weatherToImage(String weather) {
+    switch (weather) {
+      case "clear":
+        return Image.asset(
+          "images/clear.png",
+          width: 50,
+          height: 50,
+        );
+      case "oshower":
+        return Image.asset(
+          "images/rainy-weather.png",
+          width: 50,
+          height: 50,
+        );
+      default:
+        return Text("Desconocido");
+    }
+  }
+
+  Widget airToMS(int airCategory) {
+    var msjs = [
+      "",
+      "calmado",
+      "ligero",
+      "moderado",
+      "fresco",
+      "fuerte",
+      "vendaval",
+      "tormenta",
+      "huracan"
+    ];
+    return Row(children: [
+      Image.asset(
+        "images/air-element.png",
+        width: 25,
+        height: 25,
+      ),
+      Text(msjs[airCategory]),
+    ]);
   }
 
   Widget dayForecast(Forecast forecast, int day) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-      Text(forecast.dataseries[day]["date"].toString()),
-      Text(forecast.dataseries[day]["weather"].toString()),
-    ]);
+    var fecha_dt = DateTime.parse(forecast.dataseries[day]["date"].toString());
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child:
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+            Text(fecha_dt.day.toString() +
+                "/" +
+                fecha_dt.month.toString() +
+                "/" +
+                fecha_dt.year.toString()),
+            Column(children: [
+              Text("Max: " +
+                  forecast.dataseries[day]["temp2m"]["max"].toString()),
+              Text("Min: " +
+                  forecast.dataseries[day]["temp2m"]["min"].toString()),
+            ]),
+            weatherToImage(forecast.dataseries[day]["weather"]),
+            airToMS(forecast.dataseries[day]["wind10m_max"]),
+          ]),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: Center(
@@ -117,21 +155,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   dayForecast(snapshot.data, 5),
                   dayForecast(snapshot.data, 6),
                 ],
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               );
             } else if (snapshot.hasError) {
               return Text("${snapshot.error}");
             }
 
-            // By default, show a loading spinner.
             return CircularProgressIndicator();
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
